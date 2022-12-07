@@ -9,4 +9,8 @@ link_directories(
 
 #example
 add_executable(motorctrl example/main.cpp)
-target_link_libraries(motorctrl libUnitreeMotorSDK_M80106_Linux64.so)
+add_executable(motor_test src/motor_test.cpp)
+add_executable(changeID example/changeID.cpp)
+target_link_libraries(motorctrl libunitreeMotorSDK_Linux64.so)
+target_link_libraries(motor_test libunitreeMotorSDK_Linux64.so)
+target_link_libraries(changeID libunitreeMotorSDK_Linux64.so)

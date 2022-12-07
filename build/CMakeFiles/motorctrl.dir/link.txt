@@ -1,0 +1,1 @@
+/usr/bin/c++   -std=c++11 -O3   CMakeFiles/motorctrl.dir/example/main.cpp.o  -o motorctrl   -L/home/yuna/workspace/unitree_actuator_sdk/lib  -Wl,-rpath,/home/yuna/workspace/unitree_actuator_sdk/lib -lunitreeMotorSDK_Linux64 

@@ -1,0 +1,1 @@
+/usr/bin/c++   -std=c++11 -O3   CMakeFiles/motor_test.dir/src/motor_test.cpp.o  -o motor_test   -L/home/yuna/workspace/unitree_actuator_sdk/lib  -Wl,-rpath,/home/yuna/workspace/unitree_actuator_sdk/lib -lunitreeMotorSDK_Linux64 
