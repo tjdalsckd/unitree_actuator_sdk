@@ -12,5 +12,7 @@ add_executable(motorctrl example/main.cpp)
 add_executable(motor_test src/motor_test.cpp)
 add_executable(changeID example/changeID.cpp)
 target_link_libraries(motorctrl libunitreeMotorSDK_Linux64.so)
-target_link_libraries(motor_test libunitreeMotorSDK_Linux64.so)
+target_link_libraries(motor_test libunitreeMotorSDK_Linux64.so pthread rt)
 target_link_libraries(changeID libunitreeMotorSDK_Linux64.so)
+
+set(CMAKE_CXX_FLAGS "-fpermissive -std=c++0x")

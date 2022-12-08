@@ -1,1 +1,1 @@
-/usr/bin/c++   -std=c++11 -O3   CMakeFiles/changeID.dir/example/changeID.cpp.o  -o changeID   -L/home/yuna/workspace/unitree_actuator_sdk/lib  -Wl,-rpath,/home/yuna/workspace/unitree_actuator_sdk/lib -lunitreeMotorSDK_Linux64 
+/usr/bin/c++  -fpermissive -std=c++0x   CMakeFiles/changeID.dir/example/changeID.cpp.o  -o changeID   -L/home/yuna/workspace/unitree_actuator_sdk/lib  -Wl,-rpath,/home/yuna/workspace/unitree_actuator_sdk/lib -lunitreeMotorSDK_Linux64 

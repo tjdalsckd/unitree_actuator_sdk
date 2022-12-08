@@ -4,11 +4,54 @@
 #include <vector>
 #include <chrono>
 #include <iostream>
+#include <unistd.h>
+#include <time.h>
+#include <signal.h>
+#include <stdio.h>
+#include <thread>
+#include <chrono>
+#include <functional>
+#include <cstdio>
+#include <atomic>
+
 using namespace std;
 using namespace Eigen;
 using namespace chrono;
+
+class Timer {
+public:
+    ~Timer() {
+        if (mRunning) {
+            stop();
+        }
+    }
+    typedef std::chrono::microseconds Interval;
+    typedef std::function<void(void)> Timeout;
+
+    void start(const Interval &interval, const Timeout &timeout) {
+        mRunning = true;
+
+        mThread = std::thread([this, interval, timeout] {
+            while (mRunning) {
+                std::this_thread::sleep_for(interval);
+
+                timeout();
+            }
+        });
+    }
+    void stop() {
+        mRunning = false;
+        mThread.join();
+    }
+
+
+private:
+    std::thread mThread{};
+    std::atomic_bool mRunning{};
+};
+
+
 class Motor{
-	int dof;
 	VectorXd q;
 	VectorXd dq;
 	VectorXd prev_q;
@@ -17,12 +60,17 @@ class Motor{
 	VectorXd measured_torques;
 	double sampling_time;
 	double dt;
+	//Timer tm;
 
 
-	vector<MOTOR_send> motor_send_list;
-	vector<MOTOR_recv> motor_recv_list;
 	SerialPort *serial;
 public:
+    int dof;
+    vector<MOTOR_send> motor_send_list;
+    vector<MOTOR_recv> motor_recv_list;    
+        Motor(){
+           
+        }
 		Motor(int dof,SerialPort *serial,double sampling_time){
 			this->sampling_time = sampling_time; //us
 			this->dt = sampling_time/1000.0/1000.0;
@@ -59,6 +107,8 @@ public:
       			 extract_data(&this->motor_recv_list.at(i));
       			 init_q[i]  = this->motor_recv_list.at(i).Pos;      			 
 			}
+
+
 			
 		};
 		void getJointStates(VectorXd &q,VectorXd &dq){
@@ -70,9 +120,13 @@ public:
 		void setTorques(VectorXd torques){
 			for(int i = 0;i<this->dof;i++){
 				this->torques[i] = torques[i];	
+                this->motor_send_list.at(i).T = this->torques[i];
+                modify_data(&this->motor_send_list.at(i));
+
 			}
 		}
 		void send(){
+            /*
 			for(int i = 0;i<this->dof;i++){
 		    	chrono::system_clock::time_point StartTime = chrono::system_clock::now();
 
@@ -93,6 +147,7 @@ public:
 				}
 				
 			}
+            */
 		}
 		double low_pass_filter(double prev_value ,double now_value ,double f){
 			double w = f/2.0/3.141592;
@@ -105,44 +160,56 @@ public:
 
 		virtual ~Motor(){};
 };
+double t = 0;
 
+double sampling_time = 1000;
+double dt = sampling_time/1000.0/1000.0;
 
-
+Motor motor;
+SerialPort serial("/dev/ttyUSB0",78,4800000,sampling_time);
+void* sendData(){
+    VectorXd torques;    
+    VectorXd q;
+    VectorXd dq;    
+    q.resize(motor.dof);
+    dq.resize(motor.dof);
+    torques.resize(motor.dof);    
+    motor.getJointStates(q,dq);
+    torques[0] = 0.1*sin(2*3.141592*t);
+    motor.setTorques(torques);    
+    for(int i = 0;i<motor.dof;i++){
+                serial.sendRecv(&motor.motor_send_list.at(i),&motor.motor_recv_list.at(i));
+                extract_data(&motor.motor_recv_list.at(i));
+    }    
+    t=t+dt;
+}
 int main(int argc, char** argv){
+    Timer tm;
+
     // set the serial port name
-    double sampling_time = 3000;
-    double dt = sampling_time/1000.0/1000.0;
-    SerialPort serial("/dev/ttyUSB0",78,4800000,sampling_time/2.0);
+
     int robot_dof = 1;
-    Motor motor=Motor(robot_dof,&serial,sampling_time);
+    motor=Motor(robot_dof,&serial,sampling_time);
+    tm.start(std::chrono::microseconds(int(sampling_time)), sendData);    
     VectorXd q;
     VectorXd dq;
     VectorXd torques;
     q.resize(robot_dof);
     dq.resize(robot_dof);
     torques.resize(robot_dof);
-    double t = 0;
     double endTime = 5.0;
    	chrono::system_clock::time_point StartTime = chrono::system_clock::now();
-    for(double t = 0;t<endTime;t = t+dt){
-    	torques[0] = 0.1*sin(2*3.141592*t);
-    	motor.setTorques(torques);
- 
-      	motor.send();
-
-	    motor.getJointStates(q,dq);
-	    //cout<<"t :"<<t<<" -- q : "<< q[0]<<endl;
-	    //cout<<"t :"<<t<<" -- dq : "<< dq[0]<<endl;
-	    //cout<<"t :"<<t<<" -- torques : "<< torques[0]<<endl;
+    while(t<endTime){
+        usleep(1);
     }
     chrono::system_clock::time_point EndTime = chrono::system_clock::now();
    chrono::microseconds micro = chrono::duration_cast<chrono::microseconds>(EndTime - StartTime);
-    cout << micro.count()/1000.0/1000.0 << "sec" << endl;
+    cout << "chrono time : "<<micro.count()/1000.0/1000.0 << "sec" << endl;
 
 
     cout << t << "--sec" << endl;
     torques[0] = 0;
     motor.setTorques(torques);
-	motor.send();
+	//motor.send();
     return 0;
 }
